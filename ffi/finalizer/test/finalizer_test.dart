@@ -25,7 +25,10 @@ void main() async {
 
       // Verify program output
       expect(dartProcess.stderr, isEmpty);
-      expect(dartProcess.stdout, equals('Hello World\n'));
+      expect(
+          dartProcess.stdout,
+          equals(
+              'Connected to Database: sample\nDisconnected from the Database: sample\n'));
       expect(dartProcess.exitCode, equals(0));
     });
   });
