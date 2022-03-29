@@ -14,6 +14,9 @@ typedef Connect = void Function(Pointer<Utf8> str);
 typedef DisconnectFunc = Void Function();
 typedef Disconnect = void Function();
 
+late Connect connect;
+late Disconnect disconnect;
+
 void main() {
   // Open the dynamic library
   var libraryPath =
@@ -29,15 +32,41 @@ void main() {
 
   final dylib = DynamicLibrary.open(libraryPath);
 
-  final connect = dylib.lookupFunction<ConnectFunc, Connect>('connect');
-  final disconnect =
-      dylib.lookupFunction<DisconnectFunc, Disconnect>('disconnect');
+  connect = dylib.lookupFunction<ConnectFunc, Connect>('connect');
+  disconnect = dylib.lookupFunction<DisconnectFunc, Disconnect>('disconnect');
 
-  // simulate a connect to a database
-  final dbName = 'sample'.toNativeUtf8();
-  connect(dbName);
-  calloc.free(dbName);
+  Database.open('sample');
 
-  // simulate a disconnect from the database
-  disconnect();
+  // forget to close database
+}
+
+class Database {
+  final Finalizer<void> _finalizer;
+
+  Database(this._finalizer);
+
+  factory Database.open(String name) {
+    final finalizer = Finalizer<void>((_) {
+      // call to native disconnect
+      disconnect();
+    });
+
+    // call to native connect
+    final dbName = name.toNativeUtf8();
+    connect(dbName);
+    calloc.free(dbName);
+
+    final wrapper = Database(finalizer);
+
+    finalizer.attach(wrapper, null, detach: wrapper);
+
+    return wrapper;
+  }
+
+  void close() {
+    // call to native disconnect
+    disconnect();
+    // Detach from finalizer, no longer needed.
+    _finalizer.detach(this);
+  }
 }
