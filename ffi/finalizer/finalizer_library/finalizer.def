@@ -1,0 +1,4 @@
+LIBRARY   finalizer
+EXPORTS
+   connect
+   disconnect
